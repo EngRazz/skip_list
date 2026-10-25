@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <tuple>
 #include <random>
+#include <vector>
 
 namespace skip_list_kernels {
 
@@ -12,29 +13,15 @@ namespace skip_list_kernels {
 
         node_t* next_r = nullptr; // next node right, on the list
         node_t* next_d = nullptr; // next node down, in the skip list
-
-        std::int64_t ref_count;
     };
 
     /*
      * Allocate a new node.
-     * Referece count is initialized to one.
      */
     node_t* allocate_node(std::int64_t k);
 
     /*
-     * Increase reference count of node n.
-     */
-    void retain_node(node_t* n);
-
-    /*
-     * Reduce reference count of node n.
-     */
-    void release_node(node_t* n);
-
-    /*
      * Free the node n.
-     * This should not be used directly.
      */
     void free_node(node_t* n);
 
@@ -42,7 +29,7 @@ namespace skip_list_kernels {
         private:
             node_t* root; // first node, with key = -infinity
             std::uint32_t seed;
-            std::mt19937 generator{seed};
+            std::mt19937 generator;
             std::bernoulli_distribution promote{0.5};
             node_t* insert_in_level(node_t* prev, node_t* curr, std::int64_t k);
             std::vector<node_t*> search_predecessors(std::int64_t k);
@@ -51,6 +38,7 @@ namespace skip_list_kernels {
             skip_list();
             skip_list(std::uint32_t seed);
             ~skip_list();
+            node_t* get_root();
             std::uint32_t get_seed();
             void set_seed(std::uint32_t seed);
             node_t* search(std::int64_t k);
