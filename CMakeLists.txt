@@ -14,3 +14,13 @@ add_library(skip_list STATIC
 target_include_directories(skip_list PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+
+
+add_library(skip_list_rebuild STATIC
+    src/skip_list_rebuild.cpp
+)
+
+target_include_directories(skip_list_rebuild PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+

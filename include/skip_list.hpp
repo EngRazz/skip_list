@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <tuple>
 #include <random>
-#include <vector>
 
 namespace skip_list_kernels {
 
@@ -31,8 +30,6 @@ namespace skip_list_kernels {
             std::uint32_t seed;
             std::mt19937 generator;
             std::bernoulli_distribution promote{0.5};
-            node_t* insert_in_level(node_t* prev, node_t* curr, std::int64_t k);
-            std::vector<node_t*> search_predecessors(std::int64_t k);
 
         public:
             skip_list();

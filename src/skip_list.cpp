@@ -2,7 +2,58 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <ctime>
+#include <vector>
 
+using namespace skip_list_kernels;
+
+/*---- Utility functions ----*/
+std::vector<node_t*> search_predecessors(skip_list*s, std::int64_t k) {
+    node_t *prev, *curr;
+    std::vector<node_t*> predecessors;
+
+    prev = s->get_root();
+    curr = s->get_root()->next_r;
+    while(1) {
+        if(curr==nullptr) {
+            // move below
+            if(prev->next_d==nullptr) { // prev is never null since it starts as root
+                // no level below, so element is not present
+                predecessors.push_back(prev);
+                return predecessors;
+            }
+
+            predecessors.push_back(prev);
+            prev = prev->next_d;
+            curr = prev->next_r;
+
+        } else {
+
+            if(k == curr->k) {
+                // element found
+                predecessors.push_back(curr);
+                return predecessors;
+            }
+
+            if(k < curr->k) {
+                // move below
+                if(prev->next_d==nullptr) { // prev is never null since it starts as root
+                    // no level below, so element is not present
+                    predecessors.push_back(prev);
+                    return predecessors;
+                }
+
+                predecessors.push_back(prev);
+                prev = prev->next_d;
+                curr = prev->next_r;
+            } else {
+                prev = curr;
+                curr = curr->next_r;
+            }
+        }
+    }
+}
+
+/*---- Skip list methods ----*/
 namespace skip_list_kernels {
 
     node_t* allocate_node(std::int64_t k) {
@@ -99,62 +150,15 @@ namespace skip_list_kernels {
         }
     }
 
-    std::vector<node_t*> skip_list::search_predecessors(std::int64_t k) {
-        node_t *prev, *curr;
-        std::vector<node_t*> predecessors;
-
-        prev = this->root;
-        curr = prev->next_r;
-        while(1) {
-            if(curr==nullptr) {
-                // move below
-                if(prev->next_d==nullptr) { // prev is never null since it starts as root
-                    // no level below, so element is not present
-                    predecessors.push_back(prev);
-                    return predecessors;
-                }
-
-                predecessors.push_back(prev);
-                prev = prev->next_d;
-                curr = prev->next_r;
-
-            } else {
-
-                if(k == curr->k) {
-                    // element found
-                    predecessors.push_back(curr);
-                    return predecessors;
-                }
-
-                if(k < curr->k) {
-                    // move below
-                    if(prev->next_d==nullptr) { // prev is never null since it starts as root
-                        // no level below, so element is not present
-                        predecessors.push_back(prev);
-                        return predecessors;
-                    }
-
-                    predecessors.push_back(prev);
-                    prev = prev->next_d;
-                    curr = prev->next_r;
-                } else {
-                    prev = curr;
-                    curr = curr->next_r;
-                }
-            }
-        }
-    }
-
     bool skip_list::insert(std::int64_t k) {
-        node_t *n, *new_node, *new_node_u;
-        uint64_t promotion;
+        node_t *n, *new_node, *new_node_u; uint64_t promotion;
         std::vector<node_t*> predecessors;
 
         // k must not be -inf
         if(k<=this->root->k)
             return false;
 
-        predecessors = search_predecessors(k);
+        predecessors = search_predecessors(this, k);
         if(predecessors.back()->k == k)
             // node alredy in the list
             return false;
@@ -199,7 +203,7 @@ namespace skip_list_kernels {
         l = new skip_list(this->seed);
         r = new skip_list(this->seed);
 
-        predecessors = search_predecessors(x); // this vector is never empty
+        predecessors = search_predecessors(this, x); // this vector is never empty
         n = predecessors.back();
         if(n!=nullptr && n->k == x) {
             n = n->next_d;
