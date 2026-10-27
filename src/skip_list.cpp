@@ -7,7 +7,13 @@
 using namespace skip_list_kernels;
 
 /*---- Utility functions ----*/
-std::vector<node_t*> search_predecessors(skip_list*s, std::int64_t k) {
+
+/*
+ * Returns a list of all the nodes that
+ * lead from the root to the insertion position.
+ * Those are required to perform promotions or splitting.
+ */
+std::vector<node_t*> search_predecessors(skip_list* s, std::int64_t k) {
     node_t *prev, *curr;
     std::vector<node_t*> predecessors;
 
@@ -16,18 +22,20 @@ std::vector<node_t*> search_predecessors(skip_list*s, std::int64_t k) {
     while(1) {
         if(curr==nullptr) {
             // move below
-            if(prev->next_d==nullptr) { // prev is never null since it starts as root
-                // no level below, so element is not present
-                predecessors.push_back(prev);
-                return predecessors;
-            }
-
             predecessors.push_back(prev);
+            // prev is never null since it starts as root
+            if(prev->next_d==nullptr)
+                // no level below, so element is not present
+                return predecessors;
+
+            // move right on the next level
             prev = prev->next_d;
             curr = prev->next_r;
 
         } else {
 
+            // this check is required since the methos is also used in
+            // the split, where x goes to the left list
             if(k == curr->k) {
                 // element found
                 predecessors.push_back(curr);
@@ -36,13 +44,13 @@ std::vector<node_t*> search_predecessors(skip_list*s, std::int64_t k) {
 
             if(k < curr->k) {
                 // move below
-                if(prev->next_d==nullptr) { // prev is never null since it starts as root
-                    // no level below, so element is not present
-                    predecessors.push_back(prev);
-                    return predecessors;
-                }
-
                 predecessors.push_back(prev);
+                // prev is never null since it starts as root
+                if(prev->next_d==nullptr)
+                    // no level below, so element is not present
+                    return predecessors;
+
+                // move right in the next level
                 prev = prev->next_d;
                 curr = prev->next_r;
             } else {
@@ -50,6 +58,33 @@ std::vector<node_t*> search_predecessors(skip_list*s, std::int64_t k) {
                 curr = curr->next_r;
             }
         }
+    }
+}
+
+void consume_skip_list(skip_list* s) {
+    node_t* root_lv, *prev, *curr;
+
+    root_lv = s->get_root();
+    curr = root_lv->next_r;
+    while(curr!=nullptr) {
+        prev = curr;
+        curr = curr->next_r;
+        free_node(prev);
+    }
+    root_lv = root_lv->next_d;
+    s->get_root()->next_r = nullptr;
+    s->get_root()->next_d = nullptr;
+    while(root_lv!=nullptr) {
+        // delete nodes in this level
+        curr = root_lv->next_r;
+        while(curr!=nullptr) {
+            prev = curr;
+            curr = curr->next_r;
+            free_node(prev);
+        }
+        prev = root_lv;
+        root_lv = root_lv->next_d;
+        free_node(prev);
     }
 }
 
@@ -65,19 +100,11 @@ namespace skip_list_kernels {
         delete n;
     }
 
-    skip_list::skip_list() {
+    skip_list::skip_list(random_handler* rh) {
         time_t t;
         std::int64_t neg_inf = std::numeric_limits<std::int64_t>::min();
         this->root = allocate_node(neg_inf);
-        this->seed = std::time(&t);
-        this->generator.seed(this->seed);
-    }
-
-    skip_list::skip_list(std::uint32_t seed) {
-        std::int64_t neg_inf = std::numeric_limits<std::int64_t>::min();
-        this->root = allocate_node(neg_inf);
-        this->seed = seed;
-        this->generator.seed(seed);
+        this->rh = rh;
     }
 
     skip_list::~skip_list() {
@@ -103,13 +130,12 @@ namespace skip_list_kernels {
         return this->root;
     }
 
-    std::uint32_t skip_list::get_seed() {
-        return this->seed;
+    void skip_list::set_root(node_t* n) {
+        this->root = n;
     }
 
-    void skip_list::set_seed(std::uint32_t seed) {
-        this->seed = seed;
-        this->generator.seed(seed);
+    random_handler* skip_list::get_rh() {
+        return this->rh;
     }
 
     node_t* skip_list::search(std::int64_t k) {
@@ -154,20 +180,15 @@ namespace skip_list_kernels {
         node_t *n, *new_node, *new_node_u; uint64_t promotion;
         std::vector<node_t*> predecessors;
 
-        // k must not be -inf
-        if(k<=this->root->k)
+        // k must not be present (-inf does not count)
+        if(this->search(k)!=nullptr)
             return false;
 
         predecessors = search_predecessors(this, k);
-        if(predecessors.back()->k == k)
-            // node alredy in the list
-            return false;
-
-        // the node is not present, so it has to be inserted
 
         // random promotion
         promotion = 0;
-        while(promote(generator))
+        while(rh->promote(rh->generator))
             promotion++;
 
         new_node=nullptr;
@@ -200,10 +221,14 @@ namespace skip_list_kernels {
         std::vector<node_t*> predecessors;
         node_t *root_lv, *root_lv_u, *n;
 
-        l = new skip_list(this->seed);
-        r = new skip_list(this->seed);
+        l = new skip_list(this->rh);
+        r = new skip_list(this->rh);
 
         predecessors = search_predecessors(this, x); // this vector is never empty
+
+        // if x in the list, predecessors will contain
+        // only its upper node; to split I need to go
+        // down to the bottom, so the height is preserved
         n = predecessors.back();
         if(n!=nullptr && n->k == x) {
             n = n->next_d;
@@ -212,6 +237,7 @@ namespace skip_list_kernels {
                 n = n->next_d;
             }
         }
+
         root_lv = nullptr;
         root_lv_u = nullptr;
         while(!predecessors.empty()) {
@@ -225,8 +251,14 @@ namespace skip_list_kernels {
                 n->next_r = nullptr;
 
             } else
+                // all the other nodes in predecessors
+                // have k <= n->k; if at this level
+                // there is nothing on the right, then
+                // there will be nothing on the right
+                // even in all the upper levels
                 break;
         }
+
         l->root->next_r = this->root->next_r;
         l->root->next_d = this->root->next_d;
         this->root->next_r = nullptr;
@@ -237,10 +269,39 @@ namespace skip_list_kernels {
             l->root = l->root->next_d;
             free_node(root_lv);
         }
+
         if(root_lv_u!=nullptr) {
+            // there is at least a node on the
+            // right of the "border" defined by
+            // nodes inside predecessors
             r->root->next_r = root_lv_u->next_r;
             r->root->next_d = root_lv_u->next_d;
             free_node(root_lv_u);
+        }
+
+        return {l, r};
+    }
+
+    std::tuple<skip_list*, skip_list*> skip_list::split_rebuild(std::int64_t x) {
+        node_t *curr;
+        skip_list *l, *r;
+
+        l = new skip_list(this->get_rh());
+        r = new skip_list(this->get_rh());
+
+        // go to the lowest level
+        curr = this->root;
+        while(curr->next_d!=nullptr)
+            curr = curr->next_d;
+
+        // insert nodes
+        curr = curr->next_r;
+        while(curr!=nullptr) {
+            if(curr->k <= x)
+                l->insert(curr->k);
+            else
+                r->insert(curr->k);
+            curr = curr->next_r;
         }
 
         return {l, r};
@@ -258,10 +319,13 @@ namespace skip_list_kernels {
         skip_list* s;
         std::vector<node_t*> border_a;
         std::vector<node_t*> border_b;
-        node_t *curr_a, *curr_b;
+        node_t *curr_a, *curr_b, *tmp;
 
-        s = new skip_list(a->get_seed());
+        if(a->get_rh() != b->get_rh())
+            exit(1);
+        s = new skip_list(a->get_rh());
 
+        // find the "right border" of a
         curr_a = a->get_root();
         while(curr_a!=nullptr) {
             if(curr_a->next_r==nullptr) {
@@ -271,8 +335,10 @@ namespace skip_list_kernels {
                 curr_a = curr_a->next_r;
         }
 
+        // find the "left border" of b
+        // (a list of all the level roots)
         curr_b = b->get_root();
-        while(curr_b!= nullptr) {
+        while(curr_b!=nullptr) {
             border_b.push_back(curr_b);
             curr_b = curr_b->next_d;
         }
@@ -291,31 +357,40 @@ namespace skip_list_kernels {
             // use a's root
             s->get_root()->next_r = a->get_root()->next_r;
             s->get_root()->next_d = a->get_root()->next_d;
-            a->get_root()->next_r = nullptr;
-            a->get_root()->next_d = nullptr;
+
+            // delete old danglin b's level roots
+            curr_b = b->get_root()->next_d;
+            while(curr_b!=nullptr) {
+                tmp = curr_b;
+                curr_b = curr_b->next_d;
+                free_node(tmp);
+            }
         } else {
             // use b's root
-            s->get_root()->next_r = b->get_root()->next_r;
-            s->get_root()->next_d = b->get_root()->next_d;
 
-            curr_b = border_b.back();
-            b->get_root()->next_d = curr_b->next_d; // those to free
-            b->get_root()->next_r = nullptr;
-
+            // connect b's root levels with a's root
             curr_a = allocate_node(a->get_root()->k);
             curr_a->next_r = a->get_root()->next_r;
             curr_a->next_d = a->get_root()->next_d;
-            a->get_root()->next_r = nullptr;
-            a->get_root()->next_d = nullptr;
+            // delete old danglin b's level roots
+            curr_b = border_b.back();
+            curr_b = curr_b->next_d;
+            while(curr_b!=nullptr) {
+                tmp = curr_b;
+                curr_b = curr_b->next_d;
+                free_node(tmp);
+            }
+            curr_b = border_b.back();
+            curr_b->next_d = curr_a;
 
-            if(curr_b == b->get_root())
-                s->get_root()->next_d = curr_a;
-            else
-                curr_b->next_d = curr_a;
+            s->get_root()->next_r = b->get_root()->next_r;
+            s->get_root()->next_d = b->get_root()->next_d;
         }
+        a->get_root()->next_r = nullptr;
+        a->get_root()->next_d = nullptr;
+        b->get_root()->next_r = nullptr;
+        b->get_root()->next_d = nullptr;
 
-        delete a;
-        delete b;
         return s;
     }
 
@@ -323,8 +398,14 @@ namespace skip_list_kernels {
         std::tuple<skip_list*, skip_list*> result;
 
         result = s->split(x);
-        delete s;
         return result;
     }
 
-}
+    std::tuple<skip_list*, skip_list*> split_rebuild(skip_list* s, std::int64_t x) {
+        std::tuple<skip_list*, skip_list*> result;
+
+        result = s->split_rebuild(x);
+        consume_skip_list(s);
+        return result;
+    }
+} // namespace skip_list_kernels

@@ -1,0 +1,16 @@
+{
+  "operating_system": "Linux-6.6.159+-x86_64-with-glibc2.39",
+  "processor": "Intel(R) Xeon(R) CPU @ 2.20GHz",
+  "compiler": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+  "compile_commands": [
+    "/usr/bin/c++  -I/tmp/skip_list_ps9s9sw_/skip_list/include -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/skip_list.dir/src/skip_list.cpp.o -c /tmp/skip_list_ps9s9sw_/skip_list/src/skip_list.cpp",
+    "/usr/bin/c++ -DBENCHMARK_STATIC_DEFINE -I/tmp/skip_list_ps9s9sw_/skip_list/include -I/tmp/skip_list_ps9s9sw_/skip_list/build/google_benchmark/_deps/google_benchmark-src/include -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/skip_list_benchmark.dir/google_benchmark/src/main.cpp.o -c /tmp/skip_list_ps9s9sw_/skip_list/google_benchmark/src/main.cpp",
+    "/usr/bin/c++ -DBENCHMARK_STATIC_DEFINE -I/tmp/skip_list_ps9s9sw_/skip_list/include -I/tmp/skip_list_ps9s9sw_/skip_list/build/google_benchmark/_deps/google_benchmark-src/include -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/skip_list_benchmark.dir/google_benchmark/src/search_benchmark.cpp.o -c /tmp/skip_list_ps9s9sw_/skip_list/google_benchmark/src/search_benchmark.cpp",
+    "/usr/bin/c++ -DBENCHMARK_STATIC_DEFINE -I/tmp/skip_list_ps9s9sw_/skip_list/include -I/tmp/skip_list_ps9s9sw_/skip_list/build/google_benchmark/_deps/google_benchmark-src/include -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/skip_list_benchmark.dir/google_benchmark/src/insertion_benchmark.cpp.o -c /tmp/skip_list_ps9s9sw_/skip_list/google_benchmark/src/insertion_benchmark.cpp",
+    "/usr/bin/c++ -DBENCHMARK_STATIC_DEFINE -I/tmp/skip_list_ps9s9sw_/skip_list/include -I/tmp/skip_list_ps9s9sw_/skip_list/build/google_benchmark/_deps/google_benchmark-src/include -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/skip_list_benchmark.dir/google_benchmark/src/union_benchmark.cpp.o -c /tmp/skip_list_ps9s9sw_/skip_list/google_benchmark/src/union_benchmark.cpp",
+    "/usr/bin/c++ -DBENCHMARK_STATIC_DEFINE -I/tmp/skip_list_ps9s9sw_/skip_list/include -I/tmp/skip_list_ps9s9sw_/skip_list/build/google_benchmark/_deps/google_benchmark-src/include -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/skip_list_benchmark.dir/google_benchmark/src/split_benchmark.cpp.o -c /tmp/skip_list_ps9s9sw_/skip_list/google_benchmark/src/split_benchmark.cpp"
+  ],
+  "google_benchmark_version": "1.10.0",
+  "google_benchmark_commit": "a6b4a9f00b36c19af9997d68a1cf6e0b5b3d032c",
+  "search_min_time": "0.1s"
+}
