@@ -4,6 +4,10 @@ This project implements a randomized skip list of signed 64-bit integer keys.
 It includes search, insertion, ordered union, structural split, and a rebuilding
 split used for comparison.
 
+## Academic Context
+
+Developed as part of the **Advanced Algorithms and Parallel Programming** course at **Politecnico di Milano**. The project received the maximum score of **3/3** in the course challenge.
+
 ## Requirements
 
 To build locally, install CMake 3.17 or newer, Git, and a C++17 compiler.
